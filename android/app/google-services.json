@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "916182189936",
+    "project_id": "rpgthestduentlife",
+    "storage_bucket": "rpgthestduentlife.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:916182189936:android:2f033c194529bc08c471b5",
+        "android_client_info": {
+          "package_name": "com.example.rpg_student_life"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "916182189936-a6gdu4cune8f51ol70lqeqe2esvk03dn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.rpg_student_life",
+            "certificate_hash": "87daf1ebd4454540b44e58d839a485a8a69b61ea"
+          }
+        },
+        {
+          "client_id": "916182189936-3nild8p101mjh1hvufldbcbjmiqqifvl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyFWl-Wh0SVW8HtsOSzi2TtZIN_6AgZpo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "916182189936-3nild8p101mjh1hvufldbcbjmiqqifvl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
