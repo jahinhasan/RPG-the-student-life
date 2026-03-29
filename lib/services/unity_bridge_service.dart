@@ -34,6 +34,12 @@ class UnityBridgeService {
     final level = LevelCalculator.getLevel(xp);
     final playstyle = (userData['playstyle'] ?? 'scholar').toString();
     final ability = RoleAbilitySystem.forPlaystyle(playstyle);
+    final classIds = (userData['classIds'] as List<dynamic>? ?? const <dynamic>[])
+      .map((value) => value.toString())
+      .where((value) => value.isNotEmpty)
+      .toList();
+    final primaryClassId = classIds.isNotEmpty ? classIds.first : '';
+    final roomKey = _buildRoomKey(gameMode: gameMode, classId: primaryClassId, uid: user.uid);
 
     return {
       'launchToken': '${user.uid}-${DateTime.now().millisecondsSinceEpoch}',
@@ -50,6 +56,8 @@ class UnityBridgeService {
         'section': userData['section'] ?? '',
         'academicLevel': userData['academicLevel'] ?? '',
         'term': userData['term'] ?? '',
+        'classIds': classIds,
+        'primaryClassId': primaryClassId,
         'playstyle': playstyle,
         'ability': {
           'name': ability.ability,
@@ -69,6 +77,12 @@ class UnityBridgeService {
         'wins': (gameData['wins'] is num) ? (gameData['wins'] as num).toInt() : 0,
         'losses': (gameData['losses'] is num) ? (gameData['losses'] as num).toInt() : 0,
       },
+      'matchmaking': {
+        'roomKey': roomKey,
+        'classId': primaryClassId,
+        'mode': gameMode,
+        'allowClassmatesOnly': true,
+      },
       'meta': {
         'source': 'flutter_app',
         'timestamp': DateTime.now().toIso8601String(),
@@ -79,5 +93,30 @@ class UnityBridgeService {
 
   String toPrettyJson(Map<String, dynamic> payload) {
     return const JsonEncoder.withIndent('  ').convert(payload);
+  }
+
+  Future<Uri> buildUnityLaunchUri({required String gameMode}) async {
+    final payload = await buildLaunchPayload(gameMode: gameMode);
+    final rawJson = jsonEncode(payload);
+    final encodedPayload = base64Url.encode(utf8.encode(rawJson));
+
+    return Uri(
+      scheme: 'rpgstudentlifeunity',
+      host: 'launch',
+      queryParameters: {
+        'mode': gameMode,
+        'payload': encodedPayload,
+      },
+    );
+  }
+
+  String _buildRoomKey({required String gameMode, required String classId, required String uid}) {
+    final safeMode = gameMode.trim().toLowerCase();
+    final safeClass = classId.trim();
+    if (safeClass.isNotEmpty) {
+      return 'class_${safeClass}_$safeMode';
+    }
+
+    return 'solo_${uid}_$safeMode';
   }
 }

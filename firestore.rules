@@ -1,0 +1,147 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function myUid() {
+      return request.auth.uid;
+    }
+
+    function myUserPath() {
+      return /databases/$(database)/documents/users/$(myUid());
+    }
+
+    function myUserDocExists() {
+      return signedIn() && exists(myUserPath());
+    }
+
+    function myRole() {
+      return myUserDocExists() ? get(myUserPath()).data.role : null;
+    }
+
+    function isAdmin() {
+      return myRole() == 'admin';
+    }
+
+    function isTeacher() {
+      return myRole() == 'teacher';
+    }
+
+    function isStudent() {
+      return myRole() == 'student';
+    }
+
+    function isSelf(userId) {
+      return signedIn() && myUid() == userId;
+    }
+
+    function classPath(classId) {
+      return /databases/$(database)/documents/classes/$(classId);
+    }
+
+    function classExists(classId) {
+      return exists(classPath(classId));
+    }
+
+    function isAssignedTeacher(classId) {
+      return isTeacher() && classExists(classId)
+        && get(classPath(classId)).data.assignedTeacherIds.hasAny([myUid()]);
+    }
+
+    match /users/{userId} {
+      allow create: if isSelf(userId) || isAdmin();
+      allow read: if isSelf(userId)
+        || isAdmin()
+        || (isTeacher() && resource.data.role == 'student')
+        || (isStudent() && resource.data.role == 'student');
+      allow update, delete: if isSelf(userId) || isAdmin();
+
+      match /attendance/{classId} {
+        allow read: if isSelf(userId) || isAdmin() || isAssignedTeacher(classId);
+        allow create, update, delete: if isAdmin() || isAssignedTeacher(classId);
+      }
+
+      match /marks/{classId} {
+        allow read: if isSelf(userId) || isAdmin() || isAssignedTeacher(classId);
+        allow create, update, delete: if isAdmin() || isAssignedTeacher(classId);
+      }
+
+      match /notifications/{notificationId} {
+        allow read: if isSelf(userId) || isAdmin() || isTeacher();
+        allow create, update, delete: if isSelf(userId) || isAdmin() || isTeacher();
+      }
+
+      match /completedMissions/{missionId} {
+        allow read, write: if isSelf(userId) || isAdmin();
+      }
+    }
+
+    match /game_profiles/{userId} {
+      allow read: if isSelf(userId) || isAdmin() || isTeacher();
+      allow create, update, delete: if isSelf(userId) || isAdmin();
+    }
+
+    match /classes/{classId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin() || isAssignedTeacher(classId);
+    }
+
+    match /missions/{missionId} {
+      allow read: if signedIn();
+      allow create: if isAdmin() || (isTeacher() && request.resource.data.teacherId == myUid());
+      allow update: if isAdmin() || (isTeacher() && resource.data.teacherId == myUid());
+      allow delete: if isAdmin() || (isTeacher() && resource.data.teacherId == myUid());
+    }
+
+    match /class_announcements/{announcementId} {
+      allow read: if signedIn();
+      allow create: if isAdmin() || (isTeacher() && request.resource.data.teacherId == myUid());
+      allow update: if isAdmin() || (isTeacher() && resource.data.teacherId == myUid());
+      allow delete: if isAdmin() || (isTeacher() && resource.data.teacherId == myUid());
+    }
+
+    match /quizzes/{quizId} {
+      allow read: if signedIn();
+      allow create: if isAdmin() || (isTeacher() && request.resource.data.teacherId == myUid());
+      allow update: if isAdmin() || (isTeacher() && resource.data.teacherId == myUid());
+      allow delete: if isAdmin() || (isTeacher() && resource.data.teacherId == myUid());
+    }
+
+    match /class_quizzes/{quizId} {
+      allow read: if signedIn();
+      allow create: if isAdmin() || isTeacher();
+      allow update, delete: if isAdmin() || (isTeacher() && resource.data.teacherId == myUid());
+    }
+
+    match /battle_questions/{questionId} {
+      allow read: if signedIn();
+      allow write: if isAdmin() || isTeacher();
+    }
+
+    match /xp_settings/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /batches/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /levels/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /terms/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

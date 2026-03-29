@@ -11,6 +11,7 @@ final authServiceProvider = Provider<AuthService>((ref) {
 class AuthService {
   FirebaseAuth get _auth => FirebaseAuth.instance;
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+  static const Set<String> _googleSignupAllowedRoles = {'student', 'teacher'};
 
   AuthService();
 
@@ -41,6 +42,11 @@ class AuthService {
 
   Future<UserCredential?> signInWithGoogle({required String role}) async {
     try {
+      final normalizedRole = role.trim().toLowerCase();
+      if (!_googleSignupAllowedRoles.contains(normalizedRole)) {
+        throw Exception('Invalid Google sign-in role: $role');
+      }
+
       UserCredential credential;
 
       if (kIsWeb) {
@@ -63,15 +69,25 @@ class AuthService {
       final user = credential.user;
       if (user == null) return credential;
 
+      final existing = await _firestore.collection('users').doc(user.uid).get();
+      final existingRole = (existing.data()?['role'] as String?)?.trim().toLowerCase();
+      final roleToPersist = (existingRole != null && existingRole.isNotEmpty) ? existingRole : normalizedRole;
+
       await _ensureUserDocument(
         uid: user.uid,
         email: user.email ?? '',
         name: user.displayName ?? 'Student',
-        role: role,
+        role: roleToPersist,
         photoUrl: user.photoURL,
       );
 
-      if (role == 'student') {
+      final persistedRole = await getUserRole(user.uid);
+      if (persistedRole == null || persistedRole.trim().toLowerCase() != roleToPersist) {
+        await _auth.signOut();
+        throw Exception('Role verification failed after Google sign-in');
+      }
+
+      if (roleToPersist == 'student') {
         await _ensureGameProfile(user.uid);
       }
 

@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter (V2247)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "V2247"
+    },
+    {
+      "name": "Flutter (Current Device)",
+      "request": "launch",
+      "type": "dart"
+    },
+    {
+      "name": "Flutter (Profile Mode)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile"
+    }
+  ]
+}

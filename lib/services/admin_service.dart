@@ -366,6 +366,38 @@ class AdminService {
     return classes;
   }
 
+  Future<void> _assertTeacherAssignedToClass({
+    required String teacherId,
+    required String classId,
+  }) async {
+    final classDoc = await _firestore.collection('classes').doc(classId).get();
+    if (!classDoc.exists) {
+      throw Exception('Class not found');
+    }
+
+    final classData = classDoc.data() ?? <String, dynamic>{};
+    final assignedTeachers = List<String>.from(classData['assignedTeacherIds'] ?? const <String>[]);
+    if (!assignedTeachers.contains(teacherId)) {
+      throw Exception('Teacher is not assigned to this class');
+    }
+  }
+
+  Future<void> _assertStudentInClass({
+    required String studentId,
+    required String classId,
+  }) async {
+    final studentDoc = await _firestore.collection('users').doc(studentId).get();
+    if (!studentDoc.exists) {
+      throw Exception('Student not found');
+    }
+
+    final studentData = studentDoc.data() ?? <String, dynamic>{};
+    final classIds = List<String>.from(studentData['classIds'] ?? const <String>[]);
+    if (!classIds.contains(classId)) {
+      throw Exception('Student is not in the selected class');
+    }
+  }
+
   // ==================== Mission Assignment (Teacher-Scoped) ====================
 
   /// Create a mission assigned by a teacher to a class
@@ -433,11 +465,15 @@ class AdminService {
 
   /// Record student attendance for a class
   Future<void> recordAttendance({
+    required String teacherId,
     required String studentId,
     required String classId,
     required DateTime date,
     required bool isPresent,
   }) async {
+    await _assertTeacherAssignedToClass(teacherId: teacherId, classId: classId);
+    await _assertStudentInClass(studentId: studentId, classId: classId);
+
     final attendanceRef = _firestore
         .collection('users')
         .doc(studentId)
@@ -472,12 +508,16 @@ class AdminService {
 
   /// Record student marks in a class (for a test/assignment)
   Future<void> recordMarks({
+    required String teacherId,
     required String studentId,
     required String classId,
     required String assessmentName,
     required double marksObtained,
     required double totalMarks,
   }) async {
+    await _assertTeacherAssignedToClass(teacherId: teacherId, classId: classId);
+    await _assertStudentInClass(studentId: studentId, classId: classId);
+
     final marksRef = _firestore
         .collection('users')
         .doc(studentId)
