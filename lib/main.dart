@@ -6,12 +6,12 @@ import 'theme/app_theme.dart';
 import 'firebase_options.dart';
 import 'routes.dart';
 import 'providers/auth_provider.dart';
-import 'screens/splash_screen.dart';
-import 'screens/student_home_screen.dart';
-import 'screens/teacher_dashboard_screen.dart';
-import 'screens/admin_panel_screen.dart';
-import 'screens/role_selection_screen.dart';
-import 'screens/student_onboarding_screen.dart';
+import 'features/auth/presentation/screens/splash_screen.dart';
+import 'features/student/presentation/screens/student_home_screen.dart';
+import 'features/teacher/presentation/screens/teacher_dashboard_screen.dart';
+import 'features/admin/presentation/screens/admin_panel_screen.dart';
+import 'features/auth/presentation/screens/role_selection_screen.dart';
+import 'features/student/presentation/screens/student_onboarding_screen.dart';
 
 void main() async {
   runZonedGuarded(() async {
