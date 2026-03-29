@@ -2,6 +2,12 @@
 
 This repository contains the Flutter app for Student Life RPG.
 
+## Repository Links
+
+- Main app repo: https://github.com/jahinhasan/RPG-the-student-life
+- Unity repo: https://github.com/Unity-Technologies/com.unity.multiplayer.samples.coop
+- Figma UI repo: https://github.com/jahinhasan/RpgTheStudentLifeFigmaUI
+
 ## What Is In This Repository
 
 - Flutter application source code
@@ -46,13 +52,18 @@ These folders exist on local machine but are not part of this Flutter repo by de
 2. Run `flutter pub get`.
 3. Start with `flutter run`.
 
-## What Teacher Should Review First
+## What To Open First
 
-1. `lib/ARCHITECTURE.md` for structure overview.
-2. `lib/routes.dart` for complete screen navigation map.
-3. `lib/features/student/presentation/screens/student_home_screen.dart` for student main flow.
-4. `lib/features/teacher/presentation/screens/teacher_dashboard_screen.dart` for teacher flow.
-5. `lib/features/admin/presentation/screens/admin_panel_screen.dart` for admin tools.
+1. `lib/ARCHITECTURE.md`
+2. `lib/routes.dart`
+3. `TEACHER_GUIDE.md`
+4. `docs/workspace/IMPLEMENTATION_GUIDE.md`
+
+## Feature Screen Locations
+
+- Student screens: `lib/features/student/presentation/screens/`
+- Teacher screens: `lib/features/teacher/presentation/screens/`
+- Admin screens: `lib/features/admin/presentation/screens/`
 
 ## Notes For Submission
 
