@@ -67,19 +67,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _handleGoogleLogin(String role) async {
-    if (role != 'student') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Google login is enabled for students only.')),
-      );
-      return;
-    }
-
     setState(() => _isLoading = true);
     try {
       final authService = ref.read(authServiceProvider);
       final cred = await authService.signInWithGoogle(role: role);
       if (cred?.user != null && mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.studentHome);
+        final userRole = await authService.getUserRole(cred!.user!.uid);
+        if (userRole == 'teacher') {
+          Navigator.pushReplacementNamed(context, '/teacherDashboard');
+        } else if (userRole == 'admin') {
+          Navigator.pushReplacementNamed(context, '/admin');
+        } else {
+          Navigator.pushReplacementNamed(context, AppRoutes.studentHome);
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -205,7 +205,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                   ),
                 ),
-                if (isStudent) ...[
+                if (!isAdmin) ...[
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,

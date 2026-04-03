@@ -49,6 +49,7 @@ class XPService {
     final rawXp = data?['xp'];
     final xp = rawXp is num ? rawXp.toInt() : 0;
     final computedLevel = LevelCalculator.getLevel(xp);
+    final avatar3d = _normalizeAvatar3d(data);
 
     return {
       'uid': user?.uid ?? '',
@@ -80,7 +81,88 @@ class XPService {
       'selectedOutfit': data?['selectedOutfit'] ?? '',
       'selectedAccessory': data?['selectedAccessory'] ?? '',
       'selectedBadge': data?['selectedBadge'] ?? '',
+      'avatar3d': avatar3d,
     };
+  }
+
+  Map<String, dynamic> _normalizeAvatar3d(Map<String, dynamic>? data) {
+    final raw = data?['avatar3d'];
+    final source = raw is Map<String, dynamic>
+        ? raw
+        : (raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{});
+
+    final selectedOutfit = (data?['selectedOutfit'] ?? '').toString();
+    final selectedAccessory = (data?['selectedAccessory'] ?? '').toString();
+    final selectedBadge = (data?['selectedBadge'] ?? '').toString();
+
+    final outfitId = _readString(source['outfitId'], _slugify(selectedOutfit));
+    final accessoryId = _readString(source['accessoryId'], _slugify(selectedAccessory));
+    final badgeId = _readString(source['badgeId'], _slugify(selectedBadge));
+    final modelId = _readString(source['modelId'], _resolveModelId(outfitId));
+    final palette = _paletteForModel(modelId);
+
+    return {
+      'modelId': modelId,
+      'outfitId': outfitId,
+      'accessoryId': accessoryId,
+      'badgeId': badgeId,
+      'skinColor': _readString(source['skinColor'], palette['skinColor']!),
+      'primaryColor': _readString(source['primaryColor'], palette['primaryColor']!),
+      'secondaryColor': _readString(source['secondaryColor'], palette['secondaryColor']!),
+      'emissionColor': _readString(source['emissionColor'], palette['emissionColor']!),
+    };
+  }
+
+  String _readString(Object? value, String fallback) {
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return fallback;
+    return text;
+  }
+
+  String _slugify(String value) {
+    final trimmed = value.trim().toLowerCase();
+    if (trimmed.isEmpty) return '';
+    return trimmed.replaceAll(RegExp(r'[^a-z0-9]+'), '_').replaceAll(RegExp(r'_+'), '_').replaceAll(RegExp(r'^_|_$'), '');
+  }
+
+  String _resolveModelId(String outfitId) {
+    if (outfitId.contains('wizard')) return 'arcane_master';
+    if (outfitId.contains('lab')) return 'lab_scout';
+    if (outfitId.contains('business')) return 'campus_executive';
+    return 'scholar_core';
+  }
+
+  Map<String, String> _paletteForModel(String modelId) {
+    switch (modelId) {
+      case 'arcane_master':
+        return {
+          'skinColor': '#F1C27D',
+          'primaryColor': '#6D28D9',
+          'secondaryColor': '#A78BFA',
+          'emissionColor': '#C4B5FD',
+        };
+      case 'lab_scout':
+        return {
+          'skinColor': '#E8BE98',
+          'primaryColor': '#0F172A',
+          'secondaryColor': '#38BDF8',
+          'emissionColor': '#7DD3FC',
+        };
+      case 'campus_executive':
+        return {
+          'skinColor': '#D8A56D',
+          'primaryColor': '#1F2937',
+          'secondaryColor': '#60A5FA',
+          'emissionColor': '#93C5FD',
+        };
+      default:
+        return {
+          'skinColor': '#E0AC69',
+          'primaryColor': '#1E3A8A',
+          'secondaryColor': '#38BDF8',
+          'emissionColor': '#7DD3FC',
+        };
+    }
   }
 
   int _readInt(Object? value, int fallback) {
@@ -288,18 +370,47 @@ class XPService {
     final user = _ref.read(authStateProvider).value;
     if (user == null) return;
 
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
+    final data = userDoc.data() ?? <String, dynamic>{};
+
+    final existingAvatar3dRaw = data['avatar3d'];
+    final existingAvatar3d = existingAvatar3dRaw is Map<String, dynamic>
+        ? existingAvatar3dRaw
+        : (existingAvatar3dRaw is Map ? Map<String, dynamic>.from(existingAvatar3dRaw) : <String, dynamic>{});
+
+    var outfitId = _readString(existingAvatar3d['outfitId'], _slugify((data['selectedOutfit'] ?? '').toString()));
+    var accessoryId = _readString(existingAvatar3d['accessoryId'], _slugify((data['selectedAccessory'] ?? '').toString()));
+    var badgeId = _readString(existingAvatar3d['badgeId'], _slugify((data['selectedBadge'] ?? '').toString()));
+
     final update = <String, dynamic>{'updatedAt': FieldValue.serverTimestamp()};
 
     if (category == 'outfit') {
       update['avatar'] = emoji;
       update['selectedOutfit'] = name;
+      outfitId = _slugify(name);
     }
     if (category == 'accessories') {
       update['selectedAccessory'] = name;
+      accessoryId = _slugify(name);
     }
     if (category == 'badges') {
       update['selectedBadge'] = name;
+      badgeId = _slugify(name);
     }
+
+    final modelId = _resolveModelId(outfitId);
+    final palette = _paletteForModel(modelId);
+    final avatar3d = {
+      'modelId': modelId,
+      'outfitId': outfitId,
+      'accessoryId': accessoryId,
+      'badgeId': badgeId,
+      'skinColor': _readString(existingAvatar3d['skinColor'], palette['skinColor']!),
+      'primaryColor': _readString(existingAvatar3d['primaryColor'], palette['primaryColor']!),
+      'secondaryColor': _readString(existingAvatar3d['secondaryColor'], palette['secondaryColor']!),
+      'emissionColor': _readString(existingAvatar3d['emissionColor'], palette['emissionColor']!),
+    };
+    update['avatar3d'] = avatar3d;
 
     await _firestore.collection('users').doc(user.uid).set(
       update,

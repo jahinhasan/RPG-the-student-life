@@ -40,6 +40,7 @@ class UnityBridgeService {
       .toList();
     final primaryClassId = classIds.isNotEmpty ? classIds.first : '';
     final roomKey = _buildRoomKey(gameMode: gameMode, classId: primaryClassId, uid: user.uid);
+    final avatar3d = _normalizeAvatar3d(userData);
 
     return {
       'launchToken': '${user.uid}-${DateTime.now().millisecondsSinceEpoch}',
@@ -63,6 +64,11 @@ class UnityBridgeService {
           'name': ability.ability,
           'description': ability.description,
         },
+        'avatar': userData['avatar'] ?? '👨‍🎓',
+        'selectedOutfit': userData['selectedOutfit'] ?? '',
+        'selectedAccessory': userData['selectedAccessory'] ?? '',
+        'selectedBadge': userData['selectedBadge'] ?? '',
+        'avatar3d': avatar3d,
         'xp': xp,
         'coins': (userData['coins'] is num) ? (userData['coins'] as num).toInt() : 0,
         'level': level,
@@ -118,5 +124,82 @@ class UnityBridgeService {
     }
 
     return 'solo_${uid}_$safeMode';
+  }
+
+  Map<String, dynamic> _normalizeAvatar3d(Map<String, dynamic> userData) {
+    final raw = userData['avatar3d'];
+    final source = raw is Map<String, dynamic>
+        ? raw
+        : (raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{});
+
+    final selectedOutfit = (userData['selectedOutfit'] ?? '').toString();
+    final selectedAccessory = (userData['selectedAccessory'] ?? '').toString();
+    final selectedBadge = (userData['selectedBadge'] ?? '').toString();
+    final outfitId = _readString(source['outfitId'], _slugify(selectedOutfit));
+    final modelId = _readString(source['modelId'], _resolveModelId(outfitId));
+    final palette = _paletteForModel(modelId);
+
+    return {
+      'modelId': modelId,
+      'outfitId': outfitId,
+      'accessoryId': _readString(source['accessoryId'], _slugify(selectedAccessory)),
+      'badgeId': _readString(source['badgeId'], _slugify(selectedBadge)),
+      'skinColor': _readString(source['skinColor'], palette['skinColor']!),
+      'primaryColor': _readString(source['primaryColor'], palette['primaryColor']!),
+      'secondaryColor': _readString(source['secondaryColor'], palette['secondaryColor']!),
+      'emissionColor': _readString(source['emissionColor'], palette['emissionColor']!),
+    };
+  }
+
+  String _readString(Object? value, String fallback) {
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return fallback;
+    return text;
+  }
+
+  String _slugify(String value) {
+    final trimmed = value.trim().toLowerCase();
+    if (trimmed.isEmpty) return '';
+    return trimmed.replaceAll(RegExp(r'[^a-z0-9]+'), '_').replaceAll(RegExp(r'_+'), '_').replaceAll(RegExp(r'^_|_$'), '');
+  }
+
+  String _resolveModelId(String outfitId) {
+    if (outfitId.contains('wizard')) return 'arcane_master';
+    if (outfitId.contains('lab')) return 'lab_scout';
+    if (outfitId.contains('business')) return 'campus_executive';
+    return 'scholar_core';
+  }
+
+  Map<String, String> _paletteForModel(String modelId) {
+    switch (modelId) {
+      case 'arcane_master':
+        return {
+          'skinColor': '#F1C27D',
+          'primaryColor': '#6D28D9',
+          'secondaryColor': '#A78BFA',
+          'emissionColor': '#C4B5FD',
+        };
+      case 'lab_scout':
+        return {
+          'skinColor': '#E8BE98',
+          'primaryColor': '#0F172A',
+          'secondaryColor': '#38BDF8',
+          'emissionColor': '#7DD3FC',
+        };
+      case 'campus_executive':
+        return {
+          'skinColor': '#D8A56D',
+          'primaryColor': '#1F2937',
+          'secondaryColor': '#60A5FA',
+          'emissionColor': '#93C5FD',
+        };
+      default:
+        return {
+          'skinColor': '#E0AC69',
+          'primaryColor': '#1E3A8A',
+          'secondaryColor': '#38BDF8',
+          'emissionColor': '#7DD3FC',
+        };
+    }
   }
 }
